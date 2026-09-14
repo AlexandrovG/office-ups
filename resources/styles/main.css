@@ -1,0 +1,218 @@
+:root {
+    --primary-dark: #1F2429;
+    --hover-dark: #374151;
+    --card-bg: #F4F5F7;
+    --page-bg: #FFFFFF;
+    --border-line: #E2E5E9;
+    --text-muted: #6B7280;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: #0F1215;
+    display: flex;
+    justify-content: center;
+}
+
+.mobile-screen {
+    width: 100%;
+    max-width: 390px;
+    height: 100vh;
+    background-color: var(--page-bg);
+    position: relative;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 390px;
+    height: 64px;
+    background-color: var(--primary-dark);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid #374151;
+    z-index: 100;
+}
+
+.bottom-nav a {
+    color: #9CA3AF;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.bottom-nav a.active {
+    color: #FFFFFF;
+    font-weight: 700;
+}
+
+.feed-container {
+    width: 100%;
+    height: calc(100vh - 64px);
+    position: relative;
+    background-color: #000;
+}
+
+.feed-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.feed-overlay-info {
+    position: absolute;
+    bottom: 24px;
+    left: 16px;
+    right: 80px;
+    color: #FFFFFF;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.feed-overlay-actions {
+    position: absolute;
+    bottom: 30px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.action-btn {
+    background: rgba(31, 36, 41, 0.85);
+    color: #FFFFFF;
+    text-decoration: none;
+    font-size: 14px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.action-btn:hover {
+    background: var(--hover-dark);
+}
+
+.grid-container {
+    padding: 16px;
+    padding-bottom: 80px;
+}
+
+.filter-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.filter-form input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-line);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.filter-form button {
+    padding: 8px 16px;
+    background-color: var(--primary-dark);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.filter-form button:hover {
+    background-color: var(--hover-dark);
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.grid-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-line);
+    border-radius: 6px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.grid-card:hover {
+    border-color: var(--primary-dark);
+}
+
+.grid-card img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+}
+
+.card-details {
+    padding: 10px;
+}
+
+.draft-container {
+    padding: 16px;
+    padding-bottom: 80px;
+}
+
+.badge-draft {
+    display: inline-block;
+    background: #E2E5E9;
+    color: var(--primary-dark);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.draft-media img, .draft-media video {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border-line);
+    margin-bottom: 8px;
+}
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.form-group input, .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-line);
+    border-radius: 6px;
+    background: #FAFAFA;
+}

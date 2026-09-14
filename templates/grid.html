@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Плитка оборудования</title>
+    <link rel="stylesheet" href="/static/styles/main.css">
+</head>
+<body>
+    <div class="mobile-screen">
+        <div class="grid-container">
+            <h3 style="margin-bottom: 12px; font-size: 18px;">Оборудование офиса</h3>
+            <form class="filter-form" action="/office-devices/grid" method="GET">
+                <input type="number" name="min_power_watts" placeholder="Мин. мощность (Вт)" value="{{ .MinPowerFilter }}">
+                <button type="submit">Фильтр</button>
+            </form>
+
+            <div class="cards-grid">
+                {{ range .Devices }}
+                <a href="/office-devices/feed?device_id={{ .ID }}" class="grid-card">
+                    <img src="{{ .ImageURL }}" alt="{{ .DeviceName }}">
+                    <div class="card-details">
+                      <h4 style="font-size: 13px; margin-bottom: 4px;">{{ .DeviceName }}</h4>
+                      <div style="font-size: 12px; font-weight: bold; color: #1F2429;">{{ .ActivePowerWatts }} Вт</div>
+                      <div style="font-size: 11px; color: #6B7280;">cos φ {{ .PowerFactor }}</div>
+                      <div style="font-size: 11px; margin-top: 4px;">♥ {{ .LikesCount }}</div>
+                  </div>
+              </a>
+              {{ end }}
+          </div>
+      </div>
+
+      <div class="bottom-nav">
+          <a href="/office-devices/feed">Лента</a>
+          <a href="/office-devices/draft">Добавление</a>
+          <a href="/office-devices/grid" class="active">Плитка</a>
+      </div>
+  </div>
+</body>
+</html>
