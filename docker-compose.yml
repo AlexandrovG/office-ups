@@ -9,3 +9,29 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: ups_postgres
+    environment:
+      POSTGRES_USER: ups_user
+      POSTGRES_PASSWORD: ups_password
+      POSTGRES_DB: ups_office_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_ups:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    container_name: ups_adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata_ups:
+  minio-data:

@@ -1,141 +1,97 @@
 package repository
 
-import "errors"
+import (
+	"errors"
+	"time"
 
-type OfficeDevice struct {
-	ID                int
-	DeviceName        string
-	DeviceDescription string
-	ActivePowerWatts  int
-	PowerFactor       float64
-	DeviceStatus      string
-	LikedUserIDs      []int
-	ImageKey          string
-	VideoKey          string
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"office-ups/internal/app/ds"
+)
+
+type Repository struct {
+	db *gorm.DB
 }
 
-type OfficeDeviceRepository struct {
-	devices []OfficeDevice
-}
-
-func NewOfficeDeviceRepository() *OfficeDeviceRepository {
-	return &OfficeDeviceRepository{
-		devices: []OfficeDevice{
-			{
-				ID:                1,
-				DeviceName:        "Рабочая станция инженера",
-				DeviceDescription: "Системный блок Core i7, 32GB RAM, БП 750W с APFC. Высокие пусковые токи.",
-				ActivePowerWatts:  450,
-				PowerFactor:       0.85,
-				DeviceStatus:      "PUBLISHED",
-				LikedUserIDs:      []int{101, 102, 105, 107},
-				ImageKey:          "workstation.jpg",
-				VideoKey:          "workstation_preview.mp4",
-			},
-			{
-				ID:                2,
-				DeviceName:        "Монитор оператора 27 IPS",
-				DeviceDescription: "Дисплей графического поста системного энергомониторинга.",
-				ActivePowerWatts:  45,
-				PowerFactor:       0.95,
-				DeviceStatus:      "PUBLISHED",
-				LikedUserIDs:      []int{101, 108},
-				ImageKey:          "monitor27.jpg",
-				VideoKey:          "workstation_preview2.mp4",
-			},
-			{
-				ID:                3,
-				DeviceName:        "Маршрутизатор ядра MikroTik",
-				DeviceDescription: "Сетевой шлюз доступа офиса. Критичен к непрерывности электропитания.",
-				ActivePowerWatts:  60,
-				PowerFactor:       0.70,
-				DeviceStatus:      "PUBLISHED",
-				LikedUserIDs:      []int{103, 104, 109, 110, 111},
-				ImageKey:          "router.jpg",
-				VideoKey:          "workstation_preview.mp4",
-			},
-			{
-				ID:                4,
-				DeviceName:        "Сетевое хранилище NAS 4-Bay",
-				DeviceDescription: "Резервный накопитель БД. Требует штатного отключения по USB-сигналу ИБП.",
-				ActivePowerWatts:  120,
-				PowerFactor:       0.80,
-				DeviceStatus:      "PUBLISHED",
-				LikedUserIDs:      []int{102},
-				ImageKey:          "nas.jpg",
-				VideoKey:          "workstation_preview.mp4",
-			},
-			{
-				ID:                5,
-				DeviceName:        "Лазерное МФУ рабочей группы",
-				DeviceDescription: "Импульсная пиковая нагрузка при периодическом включении нагревателя фьюзера.",
-				ActivePowerWatts:  850,
-				PowerFactor:       0.65,
-				DeviceStatus:      "DRAFT",
-				LikedUserIDs:      []int{},
-				ImageKey:          "printer_draft.jpg",
-				VideoKey:          "workstation_preview.mp4",
-			},
-			{
-				ID:                6,
-				DeviceName:        "Списанный сетевой хаб 100M",
-				DeviceDescription: "Устаревшее оборудование",
-				ActivePowerWatts:  15,
-				PowerFactor:       0.60,
-				DeviceStatus:      "DELETED",
-				LikedUserIDs:      []int{},
-				ImageKey:          "old_hub.jpg",
-				VideoKey:          "workstation_preview.mp4",
-			},
-		},
+func New(dsn string) (*Repository, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, err
 	}
+	return &Repository{db: db}, nil
 }
 
-func (r *OfficeDeviceRepository) GetPublishedDevices(minWatts int) []OfficeDevice {
-	var result []OfficeDevice
-	for _, d := range r.devices {
-		if d.DeviceStatus == "PUBLISHED" && d.ActivePowerWatts >= minWatts {
-			result = append(result, d)
+func (r *Repository) GetPublishedDevices(minWatts int) ([]ds.OfficeDevice, error) {
+	var devices []ds.OfficeDevice
+	tx := r.db.Where("device_status = ?", "опубликован")
+	if minWatts > 0 {
+		tx = tx.Where("active_power_watts >= ?", minWatts)
+	}
+	err := tx.Find(&devices).Error
+	return devices, err
+}
+
+func (r *Repository) GetDeviceByID(id uint) (*ds.OfficeDevice, error) {
+	var dev ds.OfficeDevice
+	err := r.db.Where("id = ? AND device_status != ?", id, "удален").First(&dev).Error
+	if err != nil {
+		return nil, err
+	}
+	return &dev, nil
+}
+
+func (r *Repository) GetNextPublishedDevice(currentID uint) (*ds.OfficeDevice, error) {
+	var devices []ds.OfficeDevice
+	err := r.db.Where("device_status = ?", "опубликован").Order("id asc").Find(&devices).Error
+	if err != nil || len(devices) == 0 {
+		return nil, err
+	}
+	for i, d := range devices {
+		if d.ID == currentID && i+1 < len(devices) {
+			return &devices[i+1], nil
 		}
 	}
-	return result
+	return &devices[0], nil
 }
 
-func (r *OfficeDeviceRepository) GetDeviceByID(id int) (OfficeDevice, error) {
-	for _, d := range r.devices {
-		if d.ID == id && d.DeviceStatus != "DELETED" {
-			return d, nil
+func (r *Repository) GetUserDraft(userID uint) (*ds.OfficeDevice, error) {
+	var dev ds.OfficeDevice
+	err := r.db.Where("creator_id = ? AND device_status = ?", userID, "черновик").First(&dev).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
 		}
+		return nil, err
 	}
-	return OfficeDevice{}, errors.New("device not found")
+	return &dev, nil
 }
 
-func (r *OfficeDeviceRepository) GetNextPublishedDevice(currentID int) OfficeDevice {
-	var published []OfficeDevice
-	for _, d := range r.devices {
-		if d.DeviceStatus == "PUBLISHED" {
-			published = append(published, d)
-		}
-	}
-	if len(published) == 0 {
-		return OfficeDevice{}
-	}
-	for i, d := range published {
-		if d.ID == currentID {
-			if i+1 < len(published) {
-				return published[i+1]
-			}
-			return published[0]
-		}
-	}
-	return published[0]
+func (r *Repository) CreateDraft(dev *ds.OfficeDevice) error {
+	dev.DeviceStatus = "черновик"
+	dev.CreatedAt = time.Now()
+	dev.UpdatedAt = time.Now()
+	return r.db.Create(dev).Error
 }
 
-func (r *OfficeDeviceRepository) GetDraftDevice() (OfficeDevice, error) {
-	for _, d := range r.devices {
-		if d.DeviceStatus == "DRAFT" {
-			return d, nil
-		}
-	}
-	return OfficeDevice{}, errors.New("draft not found")
+func (r *Repository) PublishDraft(userID uint, desc string, watts int, pf float64) error {
+	return r.db.Model(&ds.OfficeDevice{}).
+		Where("creator_id = ? AND device_status = ?", userID, "черновик").
+		Updates(map[string]interface{}{
+			"device_description": desc,
+			"active_power_watts": watts,
+			"power_factor":       pf,
+			"device_status":      "опубликован",
+			"updated_at":         time.Now(),
+		}).Error
+}
+
+func (r *Repository) LogicalDeleteSQL(deviceID uint) error {
+	query := "UPDATE office_devices SET device_status = $1, updated_at = $2 WHERE id = $3"
+	return r.db.Exec(query, "удален", time.Now(), deviceID).Error
+}
+
+func (r *Repository) GetDeviceLikesCount(deviceID uint) int64 {
+	var count int64
+	r.db.Model(&ds.OfficeDeviceLike{}).Where("device_id = ?", deviceID).Count(&count)
+	return count
 }
