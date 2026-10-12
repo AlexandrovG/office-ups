@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ИБП — Лента</title>
+    <link rel="stylesheet" href="/static/styles/main.css">
+</head>
+<body>
+    <div class="mobile-screen">
+        <div class="feed-container">
+            <video class="feed-video"
+                   autoplay muted loop playsinline
+                   src="{{ .Ups.VideoURL }}"
+                   poster="/static/img/default_device.png"></video>
+
+            <div class="feed-side-actions">
+                <div class="action-btn">
+                    ♥ <span>{{ .Ups.LikesCount }}</span>
+                </div>
+                <a href="/ups/reels?ups_id={{ .Ups.ID }}&next=true" class="action-btn" title="Следующий">➔</a>
+            </div>
+
+            <div class="feed-bottom">
+                <h2>{{ .Ups.UpsName }}</h2>
+
+                <input type="checkbox" id="descToggle" class="desc-toggle">
+                <div class="feed-desc-wrap">
+                    <p class="feed-description">{{ .Ups.Description }}</p>
+                </div>
+                <label for="descToggle" class="feed-more"></label>
+
+                <div class="feed-params">
+                    Ёмкость: {{ .Ups.Capacity }} А·ч &nbsp;|&nbsp; Ток: {{ .Ups.MaxCurrent }} А
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="/ups/reels" class="active">Лента</a>
+            <a href="/ups/draft">Добавление</a>
+            <a href="/ups/catalog">Каталог</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ИБП — Добавление</title>
+    <link rel="stylesheet" href="/static/styles/main.css">
+</head>
+<body>
+    <div class="mobile-screen">
+        <div class="draft-container">
+            <h3>Добавление ИБП</h3>
+            <span class="badge-draft">ЧЕРНОВИК</span>
+
+            {{ if not .HasDraft }}
+            <form action="/ups/draft/create" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Фото</label>
+                    <img src="/static/img/default_device.png" alt="Фото по умолчанию" class="default-media">
+                    <input type="file" name="image_file" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label>Видео</label>
+                    <video src="/static/video/default_preview.mp4" class="default-media" controls muted playsinline></video>
+                    <input type="file" name="video_file" accept="video/*">
+                </div>
+
+                <div class="form-group">
+                    <label>Наименование ИБП</label>
+                    <input type="text" name="ups_name" placeholder="Введите название..." required>
+                </div>
+
+                <button type="submit" class="btn-primary">Далее</button>
+            </form>
+            {{ else }}
+            <div class="draft-media">
+                <label>Фото</label>
+                <img src="{{ .Ups.ImageURL }}" alt="Фото" class="default-media">
+                <label>Видео</label>
+                <video src="{{ .Ups.VideoURL }}" class="default-media" controls muted playsinline></video>
+            </div>
+
+            <form action="/ups/draft/publish" method="POST">
+                <div class="form-group">
+                    <label>Наименование</label>
+                    <input type="text" value="{{ .Ups.UpsName }}" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea name="description" rows="2">{{ .Ups.Description }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Ёмкость (А·ч)</label>
+                    <input type="number" step="0.01" name="capacity" value="{{ .Ups.Capacity }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Максимальный ток (А)</label>
+                    <input type="number" step="0.01" name="max_current" value="{{ .Ups.MaxCurrent }}">
+                </div>
+
+                <button type="submit" class="btn-primary">Опубликовать</button>
+            </form>
+            {{ end }}
+        </div>
+
+        <div class="bottom-nav">
+            <a href="/ups/reels">Лента</a>
+            <a href="/ups/draft" class="active">Добавление</a>
+            <a href="/ups/catalog">Каталог</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ИБП — Каталог</title>
+    <link rel="stylesheet" href="/static/styles/main.css">
+</head>
+<body>
+    <div class="mobile-screen">
+        <div class="grid-container">
+            <h3>Каталог ИБП</h3>
+
+            <form class="filter-form" action="/ups/catalog" method="GET" id="filterForm">
+                <label>Ёмкость (А·ч):</label>
+
+                <div class="range-slider">
+                    <div class="range-track">
+                        <div class="range-fill" id="rangeFill"></div>
+                    </div>
+                    <input type="range" id="minRange" min="0" max="3000" step="50"
+                           value="{{ if .MinCapacity }}{{ .MinCapacity }}{{ else }}0{{ end }}">
+                    <input type="range" id="maxRange" min="0" max="3000" step="50"
+                           value="{{ if .MaxCapacity }}{{ .MaxCapacity }}{{ else }}3000{{ end }}">
+                </div>
+
+                <div class="range-values">
+                    <span id="minValue">{{ if .MinCapacity }}{{ .MinCapacity }}{{ else }}0{{ end }}</span>
+                    <span id="maxValue">{{ if .MaxCapacity }}{{ .MaxCapacity }}{{ else }}3000{{ end }}</span>
+                </div>
+
+                <input type="hidden" name="min_capacity" id="minCapacityInput" value="{{ .MinCapacity }}">
+                <input type="hidden" name="max_capacity" id="maxCapacityInput" value="{{ .MaxCapacity }}">
+
+                <button type="submit" class="btn-primary">Фильтр</button>
+            </form>
+
+            <div class="cards-grid">
+                {{ range .UpsList }}
+                <div class="grid-card">
+                    <a href="/ups/reels?ups_id={{ .ID }}" style="text-decoration: none; color: inherit;">
+                        <img src="{{ .ImageURL }}" alt="{{ .UpsName }}" class="card-img">
+                        <div class="card-details">
+                            <h4>{{ .UpsName }}</h4>
+                            <div class="card-param">Ёмкость: {{ .Capacity }} А·ч</div>
+                            <div class="card-param">Ток: {{ .MaxCurrent }} А</div>
+                            <div class="card-likes">♥ {{ .LikesCount }}</div>
+                        </div>
+                    </a>
+                    <form action="/ups/delete" method="POST" style="padding: 0 10px 10px;">
+                        <input type="hidden" name="ups_id" value="{{ .ID }}">
+                        <button type="submit" class="btn-primary btn-danger">Удалить</button>
+                    </form>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="/ups/reels">Лента</a>
+            <a href="/ups/draft">Добавление</a>
+            <a href="/ups/catalog" class="active">Каталог</a>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const minRange = document.getElementById('minRange');
+            const maxRange = document.getElementById('maxRange');
+            const rangeFill = document.getElementById('rangeFill');
+            const minValue = document.getElementById('minValue');
+            const maxValue = document.getElementById('maxValue');
+            const minInput = document.getElementById('minCapacityInput');
+            const maxInput = document.getElementById('maxCapacityInput');
+
+            const MIN = parseInt(minRange.min);
+            const MAX = parseInt(maxRange.max);
+
+            function updateFill() {
+                const minVal = parseInt(minRange.value);
+                const maxVal = parseInt(maxRange.value);
+
+                const leftPercent = ((minVal - MIN) / (MAX - MIN)) * 100;
+                const rightPercent = 100 - ((maxVal - MIN) / (MAX - MIN)) * 100;
+
+                rangeFill.style.left = leftPercent + '%';
+                rangeFill.style.right = rightPercent + '%';
+
+                minValue.textContent = minVal;
+                maxValue.textContent = maxVal;
+
+                minInput.value = minVal;
+                maxInput.value = maxVal;
+            }
+
+            minRange.addEventListener('input', function () {
+                if (parseInt(minRange.value) > parseInt(maxRange.value)) {
+                    minRange.value = maxRange.value;
+                }
+                updateFill();
+            });
+
+            maxRange.addEventListener('input', function () {
+                if (parseInt(maxRange.value) < parseInt(minRange.value)) {
+                    maxRange.value = minRange.value;
+                }
+                updateFill();
+            });
+
+            updateFill();
+        })();
+    </script>
+</body>
+</html>
