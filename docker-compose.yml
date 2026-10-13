@@ -32,6 +32,17 @@ services:
     depends_on:
       - postgres
 
+  redis:
+    image: redis:6.2-alpine
+    container_name: ups_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass redis_password
+    volumes:
+      - redis-data:/data
+
 volumes:
   pgdata_ups:
   minio-data:
+  redis-data:

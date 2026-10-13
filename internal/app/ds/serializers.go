@@ -9,6 +9,8 @@ type UninterruptiblePowerSupplySerializer struct {
 	ImageURL    string  `json:"image_url"`
 	VideoURL    string  `json:"video_url"`
 	LikesCount  int     `json:"likes_count"`
+	IsCreator   bool    `json:"is_creator"`
+	IsLiked     bool    `json:"is_liked"`
 }
 
 type UninterruptiblePowerSupplyLikeRequest struct {

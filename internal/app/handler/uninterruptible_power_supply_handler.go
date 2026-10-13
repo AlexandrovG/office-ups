@@ -5,19 +5,30 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
 	"office-uninterruptible_power_supply/internal/app/ds"
+	"office-uninterruptible_power_supply/internal/app/redis"
 	"office-uninterruptible_power_supply/internal/app/repository"
-	"office-uninterruptible_power_supply/internal/app/singleton"
 )
 
 type Handler struct {
-	repo *repository.Repository
+	repo  *repository.Repository
+	redis *redis.Client
 }
 
-func NewHandler(r *repository.Repository) *Handler {
-	return &Handler{repo: r}
+func NewHandler(r *repository.Repository, rc *redis.Client) *Handler {
+	return &Handler{repo: r, redis: rc}
 }
 
+// GetUninterruptiblePowerSuppliesListAPI godoc
+// @Summary      Список ИБП с фильтром
+// @Description  Возвращает опубликованные ИБП, можно фильтровать по ёмкости
+// @Tags         uninterruptible-power-supplies
+// @Produce      json
+// @Param        min_capacity  query  number  false  "Минимальная ёмкость"
+// @Param        max_capacity  query  number  false  "Максимальная ёмкость"
+// @Success      200  {array}   ds.UninterruptiblePowerSupplySerializer
+// @Router       /uninterruptible-power-supplies [get]
 func (h *Handler) GetUninterruptiblePowerSuppliesListAPI(c *gin.Context) {
 	minCap, _ := strconv.ParseFloat(c.Query("min_capacity"), 64)
 	maxCap, _ := strconv.ParseFloat(c.Query("max_capacity"), 64)
@@ -30,11 +41,20 @@ func (h *Handler) GetUninterruptiblePowerSuppliesListAPI(c *gin.Context) {
 
 	result := make([]ds.UninterruptiblePowerSupplySerializer, 0, len(list))
 	for i := range list {
-		result = append(result, toUninterruptiblePowerSupplySerializer(&list[i]))
+		result = append(result, toSerializer(&list[i], currentUserFromContext(c)))
 	}
 	c.JSON(http.StatusOK, result)
 }
 
+// GetUninterruptiblePowerSuppliesReelsAPI godoc
+// @Summary      Лента ИБП
+// @Tags         uninterruptible-power-supplies
+// @Produce      json
+// @Param        id    query  int   false  "ID текущей услуги"
+// @Param        next  query  bool  false  "Перейти к следующей"
+// @Success      200  {object}  ds.UninterruptiblePowerSupplySerializer
+// @Failure      404
+// @Router       /uninterruptible-power-supplies/reels [get]
 func (h *Handler) GetUninterruptiblePowerSuppliesReelsAPI(c *gin.Context) {
 	idStr := c.Query("id")
 	next := c.Query("next")
@@ -64,11 +84,20 @@ func (h *Handler) GetUninterruptiblePowerSuppliesReelsAPI(c *gin.Context) {
 		c.Status(http.StatusNotFound)
 		return
 	}
-	c.JSON(http.StatusOK, toUninterruptiblePowerSupplySerializer(ups))
+	c.JSON(http.StatusOK, toSerializer(ups, currentUserFromContext(c)))
 }
 
+// GetUninterruptiblePowerSupplyDraftAPI godoc
+// @Summary      Черновик пользователя
+// @Tags         uninterruptible-power-supplies
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200  {object}  ds.UninterruptiblePowerSupplySerializer
+// @Failure      404
+// @Router       /uninterruptible-power-supplies/draft [get]
 func (h *Handler) GetUninterruptiblePowerSupplyDraftAPI(c *gin.Context) {
-	draft, err := h.repo.GetUserDraft(singleton.CurrentUser())
+	userID := currentUserFromContext(c)
+	draft, err := h.repo.GetUserDraft(userID)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
@@ -77,16 +106,30 @@ func (h *Handler) GetUninterruptiblePowerSupplyDraftAPI(c *gin.Context) {
 		c.Status(http.StatusNotFound)
 		return
 	}
-	c.JSON(http.StatusOK, toUninterruptiblePowerSupplySerializer(draft))
+	c.JSON(http.StatusOK, toSerializer(draft, userID))
 }
 
+// CreateUninterruptiblePowerSupplyAPI godoc
+// @Summary      Создать черновик ИБП с файлами
+// @Tags         uninterruptible-power-supplies
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        ups_name  formData  string  true   "Название"
+// @Param        image     formData  file    false  "Картинка"
+// @Param        video     formData  file    false  "Видео"
+// @Success      201  {object}  ds.UninterruptiblePowerSupplySerializer
+// @Failure      409
+// @Router       /uninterruptible-power-supplies [post]
 func (h *Handler) CreateUninterruptiblePowerSupplyAPI(c *gin.Context) {
+	userID := currentUserFromContext(c)
+
 	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 		c.Status(http.StatusBadRequest)
 		return
 	}
 
-	existing, _ := h.repo.GetUserDraft(singleton.CurrentUser())
+	existing, _ := h.repo.GetUserDraft(userID)
 	if existing != nil {
 		c.Status(http.StatusConflict)
 		return
@@ -94,7 +137,7 @@ func (h *Handler) CreateUninterruptiblePowerSupplyAPI(c *gin.Context) {
 
 	ups := ds.UninterruptiblePowerSupply{
 		UpsName:   c.PostForm("ups_name"),
-		CreatorID: singleton.CurrentUser(),
+		CreatorID: userID,
 	}
 
 	if err := h.repo.CreateUninterruptiblePowerSupplyDraft(&ups); err != nil {
@@ -110,16 +153,31 @@ func (h *Handler) CreateUninterruptiblePowerSupplyAPI(c *gin.Context) {
 	}
 
 	updated, _ := h.repo.GetUninterruptiblePowerSupplyByID(ups.ID)
-	c.JSON(http.StatusCreated, toUninterruptiblePowerSupplySerializer(updated))
+	c.JSON(http.StatusCreated, toSerializer(updated, userID))
 }
 
+// PublishUninterruptiblePowerSupplyAPI godoc
+// @Summary      Публикация услуги
+// @Tags         uninterruptible-power-supplies
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        description   formData  string  false  "Описание"
+// @Param        capacity      formData  number  false  "Ёмкость"
+// @Param        max_current   formData  number  false  "Ток"
+// @Param        image         formData  file    false  "Картинка"
+// @Param        video         formData  file    false  "Видео"
+// @Success      200  {object}  ds.UninterruptiblePowerSupplySerializer
+// @Router       /uninterruptible-power-supplies/publish [put]
 func (h *Handler) PublishUninterruptiblePowerSupplyAPI(c *gin.Context) {
+	userID := currentUserFromContext(c)
+
 	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 		c.Status(http.StatusBadRequest)
 		return
 	}
 
-	draft, err := h.repo.GetUserDraft(singleton.CurrentUser())
+	draft, err := h.repo.GetUserDraft(userID)
 	if err != nil || draft == nil {
 		c.Status(http.StatusNotFound)
 		return
@@ -129,7 +187,7 @@ func (h *Handler) PublishUninterruptiblePowerSupplyAPI(c *gin.Context) {
 	capacity, _ := strconv.ParseFloat(c.PostForm("capacity"), 64)
 	maxCurrent, _ := strconv.ParseFloat(c.PostForm("max_current"), 64)
 
-	if err := h.repo.PublishUninterruptiblePowerSupplyDraft(singleton.CurrentUser(), draft.ID, desc, capacity, maxCurrent); err != nil {
+	if err := h.repo.PublishUninterruptiblePowerSupplyDraft(userID, draft.ID, desc, capacity, maxCurrent); err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
@@ -142,24 +200,44 @@ func (h *Handler) PublishUninterruptiblePowerSupplyAPI(c *gin.Context) {
 	}
 
 	updated, _ := h.repo.GetUninterruptiblePowerSupplyByID(draft.ID)
-	c.JSON(http.StatusOK, toUninterruptiblePowerSupplySerializer(updated))
+	c.JSON(http.StatusOK, toSerializer(updated, userID))
 }
 
+// DeleteUninterruptiblePowerSupplyAPI godoc
+// @Summary      Удалить услугу
+// @Tags         uninterruptible-power-supplies
+// @Security     BearerAuth
+// @Param        id  path  int  true  "ID услуги"
+// @Success      204
+// @Router       /uninterruptible-power-supplies/{id} [delete]
 func (h *Handler) DeleteUninterruptiblePowerSupplyAPI(c *gin.Context) {
+	userID := currentUserFromContext(c)
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.Status(http.StatusBadRequest)
 		return
 	}
 
-	if err := h.repo.LogicalDeleteUninterruptiblePowerSupplySQL(uint(id), singleton.CurrentUser()); err != nil {
+	if err := h.repo.LogicalDeleteUninterruptiblePowerSupplySQL(uint(id), userID); err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
 	c.Status(http.StatusNoContent)
 }
 
+// LikeUninterruptiblePowerSupplyAPI godoc
+// @Summary      Лайк/анлайк
+// @Tags         uninterruptible-power-supplies
+// @Security     BearerAuth
+// @Accept       json
+// @Param        id     path  int     true  "ID услуги"
+// @Param        value  body  object  true  "value: 0 или 1"
+// @Success      204
+// @Router       /uninterruptible-power-supplies/{id}/like [post]
 func (h *Handler) LikeUninterruptiblePowerSupplyAPI(c *gin.Context) {
+	userID := currentUserFromContext(c)
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.Status(http.StatusBadRequest)
@@ -176,42 +254,14 @@ func (h *Handler) LikeUninterruptiblePowerSupplyAPI(c *gin.Context) {
 		return
 	}
 
-	if err := h.repo.LikeUninterruptiblePowerSupply(singleton.CurrentUser(), uint(id), *req.Value); err != nil {
+	if err := h.repo.LikeUninterruptiblePowerSupply(userID, uint(id), *req.Value); err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
 	c.Status(http.StatusNoContent)
 }
 
-func (h *Handler) RegisterAPI(c *gin.Context) {
-	var req ds.RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Status(http.StatusBadRequest)
-		return
-	}
-
-	user, err := h.repo.CreateUser(req.Login, req.Password)
-	if err != nil {
-		c.Status(http.StatusConflict)
-		return
-	}
-
-	c.JSON(http.StatusCreated, ds.UserSerializer{
-		ID:          user.ID,
-		Login:       user.UserLogin,
-		IsModerator: user.IsModerator,
-	})
-}
-
-func (h *Handler) LoginAPI(c *gin.Context) {
-	c.Status(http.StatusOK)
-}
-
-func (h *Handler) LogoutAPI(c *gin.Context) {
-	c.Status(http.StatusOK)
-}
-
-func toUninterruptiblePowerSupplySerializer(u *ds.UninterruptiblePowerSupply) ds.UninterruptiblePowerSupplySerializer {
+func toSerializer(u *ds.UninterruptiblePowerSupply, currentUserID uint) ds.UninterruptiblePowerSupplySerializer {
 	img := ""
 	if u.ImageURL.Valid {
 		img = u.ImageURL.String
@@ -230,5 +280,16 @@ func toUninterruptiblePowerSupplySerializer(u *ds.UninterruptiblePowerSupply) ds
 		ImageURL:    img,
 		VideoURL:    vid,
 		LikesCount:  len(u.Likes),
+		IsCreator:   u.CreatorID == currentUserID,
+		IsLiked:     hasLike(u.Likes, currentUserID),
 	}
+}
+
+func hasLike(likes []ds.UninterruptiblePowerSupplyLike, userID uint) bool {
+	for _, l := range likes {
+		if l.UserID == userID {
+			return true
+		}
+	}
+	return false
 }

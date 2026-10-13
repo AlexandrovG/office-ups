@@ -144,3 +144,12 @@ func (r *Repository) CreateUser(login, passwordHash string) (*ds.OfficeUser, err
 	err := r.db.Create(&user).Error
 	return &user, err
 }
+
+func (r *Repository) GetUserByLogin(login string) (*ds.OfficeUser, error) {
+	var user ds.OfficeUser
+	err := r.db.Where("user_login = ?", login).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

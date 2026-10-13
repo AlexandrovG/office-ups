@@ -1,0 +1,286 @@
+basePath: /api
+definitions:
+  ds.RegisterRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  ds.UninterruptiblePowerSupplySerializer:
+    properties:
+      capacity:
+        type: number
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      likes_count:
+        type: integer
+      max_current:
+        type: number
+      ups_name:
+        type: string
+      video_url:
+        type: string
+    type: object
+  ds.UserSerializer:
+    properties:
+      id:
+        type: integer
+      is_moderator:
+        type: boolean
+      login:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API для управления ИБП в офисе
+  title: Office UPS API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: login и password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ds.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+      summary: Аутентификация
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+      security:
+      - BearerAuth: []
+      summary: Выход
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: login и password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ds.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ds.UserSerializer'
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+      summary: Регистрация
+      tags:
+      - auth
+  /uninterruptible-power-supplies:
+    get:
+      description: Возвращает опубликованные ИБП, можно фильтровать по ёмкости
+      parameters:
+      - description: Минимальная ёмкость
+        in: query
+        name: min_capacity
+        type: number
+      - description: Максимальная ёмкость
+        in: query
+        name: max_capacity
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.UninterruptiblePowerSupplySerializer'
+            type: array
+      summary: Список ИБП с фильтром
+      tags:
+      - uninterruptible-power-supplies
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Название
+        in: formData
+        name: ups_name
+        required: true
+        type: string
+      - description: Картинка
+        in: formData
+        name: image
+        type: file
+      - description: Видео
+        in: formData
+        name: video
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ds.UninterruptiblePowerSupplySerializer'
+        "409":
+          description: Conflict
+      security:
+      - BearerAuth: []
+      summary: Создать черновик ИБП с файлами
+      tags:
+      - uninterruptible-power-supplies
+  /uninterruptible-power-supplies/{id}:
+    delete:
+      parameters:
+      - description: ID услуги
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить услугу
+      tags:
+      - uninterruptible-power-supplies
+  /uninterruptible-power-supplies/{id}/like:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID услуги
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'value: 0 или 1'
+        in: body
+        name: value
+        required: true
+        schema:
+          type: object
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Лайк/анлайк
+      tags:
+      - uninterruptible-power-supplies
+  /uninterruptible-power-supplies/draft:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.UninterruptiblePowerSupplySerializer'
+        "404":
+          description: Not Found
+      security:
+      - BearerAuth: []
+      summary: Черновик пользователя
+      tags:
+      - uninterruptible-power-supplies
+  /uninterruptible-power-supplies/publish:
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Описание
+        in: formData
+        name: description
+        type: string
+      - description: Ёмкость
+        in: formData
+        name: capacity
+        type: number
+      - description: Ток
+        in: formData
+        name: max_current
+        type: number
+      - description: Картинка
+        in: formData
+        name: image
+        type: file
+      - description: Видео
+        in: formData
+        name: video
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.UninterruptiblePowerSupplySerializer'
+      security:
+      - BearerAuth: []
+      summary: Публикация услуги
+      tags:
+      - uninterruptible-power-supplies
+  /uninterruptible-power-supplies/reels:
+    get:
+      parameters:
+      - description: ID текущей услуги
+        in: query
+        name: id
+        type: integer
+      - description: Перейти к следующей
+        in: query
+        name: next
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.UninterruptiblePowerSupplySerializer'
+        "404":
+          description: Not Found
+      summary: Лента ИБП
+      tags:
+      - uninterruptible-power-supplies
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
