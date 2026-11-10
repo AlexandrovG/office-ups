@@ -27,7 +27,12 @@ func (r *Repository) GetPublishedUninterruptiblePowerSupplies(minCap, maxCap flo
 
 func (r *Repository) GetUninterruptiblePowerSupplyByID(id uint) (*ds.UninterruptiblePowerSupply, error) {
 	var ups ds.UninterruptiblePowerSupply
-	err := r.db.Preload("Likes").Where("id = ? AND status != ?", id, "удален").First(&ups).Error
+		err := r.db.
+		Preload("Likes").
+		Preload("Attributes").
+		Preload("Attributes.Attribute").
+		Where("id = ? AND status != ?", id, "удален").
+		First(&ups).Error
 	if err != nil {
 		return nil, err
 	}

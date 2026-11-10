@@ -22,6 +22,8 @@ func main() {
 		&ds.OfficeUser{},
 		&ds.UninterruptiblePowerSupply{},
 		&ds.UninterruptiblePowerSupplyLike{},
+		&ds.Attribute{},
+		&ds.UpsAttribute{},
 	)
 	if err != nil {
 		log.Fatalf("Ошибка миграции: %v", err)

@@ -390,6 +390,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "ds.Attribute": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "ds.RegisterRequest": {
             "type": "object",
             "required": [
@@ -408,6 +419,12 @@ const docTemplate = `{
         "ds.UninterruptiblePowerSupplySerializer": {
             "type": "object",
             "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ds.UpsAttribute"
+                    }
+                },
                 "capacity": {
                     "type": "number"
                 },
@@ -420,6 +437,12 @@ const docTemplate = `{
                 "image_url": {
                     "type": "string"
                 },
+                "is_creator": {
+                    "type": "boolean"
+                },
+                "is_liked": {
+                    "type": "boolean"
+                },
                 "likes_count": {
                     "type": "integer"
                 },
@@ -430,6 +453,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "video_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.UpsAttribute": {
+            "type": "object",
+            "properties": {
+                "attribute": {
+                    "$ref": "#/definitions/ds.Attribute"
+                },
+                "attribute_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ups_id": {
+                    "type": "integer"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -448,24 +491,17 @@ const docTemplate = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/api",
+	Version:          "",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Office UPS API",
-	Description:      "API для управления ИБП в офисе",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

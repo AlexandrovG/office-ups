@@ -271,6 +271,11 @@ func toSerializer(u *ds.UninterruptiblePowerSupply, currentUserID uint) ds.Unint
 		vid = u.VideoURL.String
 	}
 
+	    attrs := u.Attributes
+    if attrs == nil {
+        attrs = []ds.UpsAttribute{}
+    }
+
 	return ds.UninterruptiblePowerSupplySerializer{
 		ID:          u.ID,
 		UpsName:     u.UpsName,
@@ -282,6 +287,8 @@ func toSerializer(u *ds.UninterruptiblePowerSupply, currentUserID uint) ds.Unint
 		LikesCount:  len(u.Likes),
 		IsCreator:   u.CreatorID == currentUserID,
 		IsLiked:     hasLike(u.Likes, currentUserID),
+
+		Attributes: attrs, 
 	}
 }
 

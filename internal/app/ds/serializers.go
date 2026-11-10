@@ -11,6 +11,7 @@ type UninterruptiblePowerSupplySerializer struct {
 	LikesCount  int     `json:"likes_count"`
 	IsCreator   bool    `json:"is_creator"`
 	IsLiked     bool    `json:"is_liked"`
+    Attributes  []UpsAttribute          `json:"attributes"` 
 }
 
 type UninterruptiblePowerSupplyLikeRequest struct {

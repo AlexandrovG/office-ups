@@ -1,32 +1,24 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"strconv"
+	"context"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "office-uninterruptible_power_supply/docs"
-
 	"office-uninterruptible_power_supply/internal/app/dsn"
 	"office-uninterruptible_power_supply/internal/app/handler"
 	"office-uninterruptible_power_supply/internal/app/redis"
 	"office-uninterruptible_power_supply/internal/app/repository"
 )
 
-// @title Office UPS API
-// @version 1.0
-// @description API для управления ИБП в офисе
-// @host localhost:8080
-// @BasePath /api
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
 func main() {
 	_ = godotenv.Load()
 
@@ -52,6 +44,14 @@ func main() {
 	h := handler.NewHandler(repo, redisClient)
 
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

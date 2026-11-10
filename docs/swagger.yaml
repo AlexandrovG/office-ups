@@ -1,5 +1,11 @@
-basePath: /api
 definitions:
+  ds.Attribute:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   ds.RegisterRequest:
     properties:
       login:
@@ -12,6 +18,10 @@ definitions:
     type: object
   ds.UninterruptiblePowerSupplySerializer:
     properties:
+      attributes:
+        items:
+          $ref: '#/definitions/ds.UpsAttribute'
+        type: array
       capacity:
         type: number
       description:
@@ -20,6 +30,10 @@ definitions:
         type: integer
       image_url:
         type: string
+      is_creator:
+        type: boolean
+      is_liked:
+        type: boolean
       likes_count:
         type: integer
       max_current:
@@ -27,6 +41,19 @@ definitions:
       ups_name:
         type: string
       video_url:
+        type: string
+    type: object
+  ds.UpsAttribute:
+    properties:
+      attribute:
+        $ref: '#/definitions/ds.Attribute'
+      attribute_id:
+        type: integer
+      id:
+        type: integer
+      ups_id:
+        type: integer
+      value:
         type: string
     type: object
   ds.UserSerializer:
@@ -38,12 +65,8 @@ definitions:
       login:
         type: string
     type: object
-host: localhost:8080
 info:
   contact: {}
-  description: API для управления ИБП в офисе
-  title: Office UPS API
-  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -278,9 +301,4 @@ paths:
       summary: Лента ИБП
       tags:
       - uninterruptible-power-supplies
-securityDefinitions:
-  BearerAuth:
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

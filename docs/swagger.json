@@ -1,13 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API для управления ИБП в офисе",
-        "title": "Office UPS API",
-        "contact": {},
-        "version": "1.0"
+        "contact": {}
     },
-    "host": "localhost:8080",
-    "basePath": "/api",
     "paths": {
         "/auth/login": {
             "post": {
@@ -384,6 +379,17 @@
         }
     },
     "definitions": {
+        "ds.Attribute": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "ds.RegisterRequest": {
             "type": "object",
             "required": [
@@ -402,6 +408,12 @@
         "ds.UninterruptiblePowerSupplySerializer": {
             "type": "object",
             "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ds.UpsAttribute"
+                    }
+                },
                 "capacity": {
                     "type": "number"
                 },
@@ -414,6 +426,12 @@
                 "image_url": {
                     "type": "string"
                 },
+                "is_creator": {
+                    "type": "boolean"
+                },
+                "is_liked": {
+                    "type": "boolean"
+                },
                 "likes_count": {
                     "type": "integer"
                 },
@@ -424,6 +442,26 @@
                     "type": "string"
                 },
                 "video_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.UpsAttribute": {
+            "type": "object",
+            "properties": {
+                "attribute": {
+                    "$ref": "#/definitions/ds.Attribute"
+                },
+                "attribute_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ups_id": {
+                    "type": "integer"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -441,13 +479,6 @@
                     "type": "string"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         }
     }
 }

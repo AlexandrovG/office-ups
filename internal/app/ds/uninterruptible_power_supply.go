@@ -20,4 +20,6 @@ type UninterruptiblePowerSupply struct {
 
 	Creator OfficeUser                       `gorm:"foreignKey:CreatorID"`
 	Likes   []UninterruptiblePowerSupplyLike `gorm:"foreignKey:UpsID"`
+
+	Attributes []UpsAttribute `gorm:"foreignKey:UpsID" json:"attributes"`
 }
